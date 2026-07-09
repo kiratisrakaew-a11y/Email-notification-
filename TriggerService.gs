@@ -10,14 +10,16 @@ const TriggerService = {
     this.deleteExistingReminderTriggers();
     const reminderTimes = settings.reminderTimes || APP_CONFIG.defaults.reminderTimes;
     reminderTimes.forEach((timeText) => {
-      const hour = Number(String(timeText).split(':')[0]);
+      const parts = String(timeText).split(':');
+      const hour = Number(parts[0]);
+      const minute = Number(parts[1]);
       if (!isNaN(hour)) {
-        ScriptApp.newTrigger(APP_CONFIG.triggerHandler)
+        const builder = ScriptApp.newTrigger(APP_CONFIG.triggerHandler)
           .timeBased()
           .everyDays(1)
-          .atHour(hour)
-          .inTimezone(APP_CONFIG.timezone)
-          .create();
+          .atHour(hour);
+        if (!isNaN(minute)) builder.nearMinute(minute);
+        builder.inTimezone(APP_CONFIG.timezone).create();
       }
     });
   },

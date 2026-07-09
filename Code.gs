@@ -30,13 +30,10 @@ function runScheduledReminder() {
     try {
       const settings = SettingsService.getSettings();
       const recipients = EmailService.filterValidRecipients(settings);
-      EmailService.sendEmailWithRetry({
-        to: EmailService.getMailTo(recipients),
-        cc: recipients.cc.join(','),
-        bcc: recipients.bcc.join(','),
+      EmailService.sendEmailWithRetry(Object.assign(EmailService.buildRecipientFields(recipients), {
         subject: 'แจ้งเตือนระบบทำงานผิดพลาด',
         body: 'Trigger ทำงานผิดพลาด\n' + error.message
-      });
+      }));
     } catch (emailError) {
       LogService.appendErrorLog(emailError, { type: 'Trigger Error Email' });
     }

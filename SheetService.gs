@@ -20,11 +20,12 @@ const SheetService = {
     const sheet = spreadsheet.getSheetByName(APP_CONFIG.sheetNames.data);
     if (!sheet) throw new Error('ไม่พบชีต DATA');
 
-    const values = sheet.getDataRange().getValues();
-    if (values.length < 2) return { rows: [], columnMap: this.getColumnIndexMap(sheet), sheet };
-
     const columnMap = this.getColumnIndexMap(sheet);
     this.validateRequiredColumns(columnMap);
+
+    const values = sheet.getDataRange().getValues();
+    if (values.length < 2) return { rows: [], columnMap, sheet };
+
     const rows = values.slice(1).map((row, index) => ({ values: row, rowNumber: index + 2 }));
     return { rows, columnMap, sheet };
   },

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 12px; color: #202124; }
+    h2 { font-size: 18px; margin: 0 0 12px; }
+    label { display: block; font-weight: 600; margin-top: 12px; }
+    input[type="text"], input[type="time"], textarea { box-sizing: border-box; width: 100%; padding: 8px; margin-top: 4px; }
+    textarea { min-height: 58px; resize: vertical; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row input[type="range"] { flex: 1; }
+    .hint { color: #5f6368; font-size: 12px; line-height: 1.4; }
+    .status { margin: 12px 0; padding: 8px; background: #f1f3f4; border-radius: 6px; }
+    button { width: 100%; padding: 9px; margin-top: 10px; border: 0; border-radius: 6px; cursor: pointer; }
+    .primary { background: #1a73e8; color: #fff; }
+    .secondary { background: #e8f0fe; color: #174ea6; }
+    .danger { background: #fce8e6; color: #a50e0e; }
+  </style>
+</head>
+<body>
+  <h2>ตั้งค่าแจ้งเตือน</h2>
+  <p class="hint">ตั้งค่าการแจ้งเตือนจากชีต DATA สำหรับ Due และ Chq. Date อีเมลหลายรายการให้คั่นด้วย comma (,)</p>
+
+  <label>แจ้งเตือน Due ล่วงหน้า: <span id="dueDaysLabel">30</span> วัน</label>
+  <div class="row"><input id="dueReminderDays" type="range" min="1" max="60" value="30" oninput="dueDaysLabel.textContent=this.value"></div>
+
+  <label>แจ้งเตือน Chq. Date ล่วงหน้า: <span id="chqDaysLabel">1</span> วัน</label>
+  <div class="row"><input id="chqReminderDays" type="range" min="1" max="60" value="1" oninput="chqDaysLabel.textContent=this.value"></div>
+
+  <label>To</label>
+  <textarea id="toRecipients" placeholder="user@planbmedia.co.th, admin@planbmedia.co.th"></textarea>
+
+  <label>CC</label>
+  <textarea id="ccRecipients" placeholder="cc@planbmedia.co.th"></textarea>
+
+  <label>BCC</label>
+  <textarea id="bccRecipients" placeholder="bcc@planbmedia.co.th"></textarea>
+
+  <label>เวลาแจ้งเตือนรอบที่ 1</label>
+  <input id="timeOne" type="time" value="09:00">
+
+  <label>เวลาแจ้งเตือนรอบที่ 2</label>
+  <input id="timeTwo" type="time" value="13:00">
+
+  <label><input id="isEnabled" type="checkbox"> เปิดระบบแจ้งเตือนอัตโนมัติ</label>
+
+  <div id="status" class="status">กำลังโหลดการตั้งค่า...</div>
+
+  <button class="primary" onclick="saveSettings()">บันทึกการตั้งค่า</button>
+  <button class="secondary" onclick="sendTest()">ทดสอบส่งอีเมล</button>
+  <button class="danger" onclick="toggleSystem()">เปิด/ปิดระบบแจ้งเตือน</button>
+
+  <script>
+    function setStatus(message) {
+      document.getElementById('status').textContent = message;
+    }
+
+    function collectSettings() {
+      return {
+        dueReminderDays: Number(document.getElementById('dueReminderDays').value),
+        chqReminderDays: Number(document.getElementById('chqReminderDays').value),
+        toRecipients: document.getElementById('toRecipients').value,
+        ccRecipients: document.getElementById('ccRecipients').value,
+        bccRecipients: document.getElementById('bccRecipients').value,
+        reminderTimes: [document.getElementById('timeOne').value, document.getElementById('timeTwo').value].filter(Boolean),
+        isEnabled: document.getElementById('isEnabled').checked
+      };
+    }
+
+    function applySettings(settings) {
+      document.getElementById('dueReminderDays').value = settings.dueReminderDays;
+      document.getElementById('dueDaysLabel').textContent = settings.dueReminderDays;
+      document.getElementById('chqReminderDays').value = settings.chqReminderDays;
+      document.getElementById('chqDaysLabel').textContent = settings.chqReminderDays;
+      document.getElementById('toRecipients').value = settings.toRecipients || '';
+      document.getElementById('ccRecipients').value = settings.ccRecipients || '';
+      document.getElementById('bccRecipients').value = settings.bccRecipients || '';
+      document.getElementById('timeOne').value = (settings.reminderTimes && settings.reminderTimes[0]) || '09:00';
+      document.getElementById('timeTwo').value = (settings.reminderTimes && settings.reminderTimes[1]) || '13:00';
+      document.getElementById('isEnabled').checked = Boolean(settings.isEnabled);
+      setStatus('สถานะ: ' + (settings.isEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน') + ' | Trigger: ' + (settings.hasActiveTrigger ? 'มี trigger' : 'ไม่มี trigger'));
+    }
+
+    function saveSettings() {
+      setStatus('กำลังบันทึก...');
+      google.script.run.withSuccessHandler(applySettings).withFailureHandler(function(error) {
+        setStatus('บันทึกไม่สำเร็จ: ' + error.message);
+      }).saveSettingsFromSidebar(collectSettings());
+    }
+
+    function sendTest() {
+      setStatus('กำลังส่งอีเมลทดสอบ...');
+      google.script.run.withSuccessHandler(function(result) {
+        setStatus('ส่งอีเมลทดสอบแล้ว: ' + result.status);
+      }).withFailureHandler(function(error) {
+        setStatus('ส่งอีเมลทดสอบไม่สำเร็จ: ' + error.message);
+      }).sendTestEmail();
+    }
+
+    function toggleSystem() {
+      const enabled = document.getElementById('isEnabled').checked;
+      setStatus('กำลังเปลี่ยนสถานะระบบ...');
+      google.script.run.withSuccessHandler(function(result) {
+        setStatus('สถานะ: ' + (result.isEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน') + ' | Trigger: ' + (result.hasActiveTrigger ? 'มี trigger' : 'ไม่มี trigger'));
+      }).withFailureHandler(function(error) {
+        setStatus('เปลี่ยนสถานะไม่สำเร็จ: ' + error.message);
+      }).toggleReminderSystemFromSidebar(enabled);
+    }
+
+    google.script.run.withSuccessHandler(applySettings).withFailureHandler(function(error) {
+      setStatus('โหลดการตั้งค่าไม่สำเร็จ: ' + error.message);
+    }).getSettingsForSidebar();
+  </script>
+</body>
+</html>

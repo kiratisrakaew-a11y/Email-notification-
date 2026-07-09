@@ -17,9 +17,11 @@ const EmailService = {
 
     const recipients = this.filterValidRecipients(settings);
     const body = this.buildReminderEmailBody(payload);
+    const htmlBody = this.buildReminderEmailHtml(payload);
     return this.sendReminderEmail({
       subject: 'แจ้งเตือน: Vendor ที่จะถึงครบกำหนดเพื่อดำเนินการล่วงหน้า',
       body,
+      htmlBody,
       recipients,
       payload
     });
@@ -114,10 +116,12 @@ const EmailService = {
    */
   sendReminderEmail(reminderPayload) {
     const recipients = reminderPayload.recipients;
-    const result = this.sendEmailWithRetry(Object.assign(this.buildRecipientFields(recipients), {
+    const emailFields = Object.assign(this.buildRecipientFields(recipients), {
       subject: reminderPayload.subject,
       body: reminderPayload.body
-    }));
+    });
+    if (reminderPayload.htmlBody) emailFields.htmlBody = reminderPayload.htmlBody;
+    const result = this.sendEmailWithRetry(emailFields);
 
     const allItems = reminderPayload.payload.dueReminders.concat(reminderPayload.payload.chqReminders, reminderPayload.payload.warnings);
     allItems.forEach((item) => {
@@ -182,15 +186,83 @@ const EmailService = {
   },
 
   /**
+   * Escapes HTML special characters in a cell value.
+   * @param {*} value Raw value.
+   * @return {string} Escaped string.
+   */
+  escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  },
+
+  /**
+   * Builds an HTML email body with real tables (readable in email clients).
+   * @param {Object} reminders Reminder payload.
+   * @return {string} HTML email body.
+   */
+  buildReminderEmailHtml(reminders) {
+    const url = this.escapeHtml(reminders.spreadsheetUrl);
+    const parts = [
+      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#202124">',
+      '<p>แจ้งเตือนรายการ Vendor ที่ถึงกำหนดเพื่อดำเนินการ</p>',
+      '<p><a href="' + url + '" style="color:#1a73e8">เปิด Google Sheet</a></p>'
+    ];
+    parts.push(this.buildSectionHtml('รายการที่ใกล้ถึงกำหนดทำจ่าย', reminders.dueReminders));
+    parts.push(this.buildSectionHtml('รายการที่ต้องไปรับเช็ค', reminders.chqReminders));
+    parts.push(this.buildSectionHtml('Warning', reminders.warnings));
+    parts.push('</div>');
+    return parts.join('');
+  },
+
+  /**
+   * Builds one HTML table section.
+   * @param {string} title Section title.
+   * @param {Array<Object>} items Reminder items.
+   * @return {string} HTML fragment, or empty string when no items.
+   */
+  buildSectionHtml(title, items) {
+    if (!items.length) return '';
+    const cellBase = 'border:1px solid #dadce0;padding:6px;vertical-align:top;';
+    const headers = ['No', 'Vendor name', 'Amount/Month', 'PR No', 'PO No', 'Epicore Code', 'Media Location', 'Date', 'Days', 'Row'];
+    const headHtml = headers.map((h) => '<th style="' + cellBase + 'text-align:left;background:#f1f3f4;white-space:nowrap">' + this.escapeHtml(h) + '</th>').join('');
+    const rowsHtml = items.map((item) => {
+      const wide = cellBase + 'word-break:break-word;max-width:240px';
+      const cells = [
+        '<td style="' + cellBase + 'white-space:nowrap">' + this.escapeHtml(item.no) + '</td>',
+        '<td style="' + cellBase + 'word-break:break-word;max-width:200px">' + this.escapeHtml(item.vendorName) + '</td>',
+        '<td style="' + cellBase + 'white-space:nowrap;text-align:right">' + this.escapeHtml(item.amountMonth) + '</td>',
+        '<td style="' + cellBase + '">' + this.escapeHtml(item.prNo) + '</td>',
+        '<td style="' + cellBase + '">' + this.escapeHtml(item.poNo) + '</td>',
+        '<td style="' + cellBase + '">' + this.escapeHtml(item.epicoreCode) + '</td>',
+        '<td style="' + wide + '">' + this.escapeHtml(item.mediaLocation) + '</td>',
+        '<td style="' + cellBase + 'white-space:nowrap">' + this.escapeHtml(item.relatedDate || '') + '</td>',
+        '<td style="' + cellBase + 'text-align:right">' + this.escapeHtml(item.daysUntil === 0 ? '0' : (item.daysUntil || '')) + '</td>',
+        '<td style="' + cellBase + 'text-align:right">' + this.escapeHtml(item.rowNumber) + '</td>'
+      ];
+      return '<tr>' + cells.join('') + '</tr>';
+    }).join('');
+    return '<h3 style="margin:16px 0 6px">' + this.escapeHtml(title) + '</h3>' +
+      '<table style="border-collapse:collapse;width:100%;font-size:12px">' +
+      '<thead><tr>' + headHtml + '</tr></thead><tbody>' + rowsHtml + '</tbody></table>';
+  },
+
+  /**
    * Sends a test email using current settings.
    * @return {Object} Test result.
    */
   sendTestEmail() {
     const settings = SettingsService.getSettings();
     const recipients = this.filterValidRecipients(settings);
+    const now = new Date();
     const result = this.sendEmailWithRetry(Object.assign(this.buildRecipientFields(recipients), {
       subject: 'ทดสอบระบบแจ้งเตือนอีเมล',
-      body: 'นี่คืออีเมลทดสอบจากระบบแจ้งเตือน Google Apps Script\n' + new Date()
+      body: 'นี่คืออีเมลทดสอบจากระบบแจ้งเตือน Google Apps Script\n' + now,
+      htmlBody: '<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#202124">' +
+        '<p>นี่คืออีเมลทดสอบจากระบบแจ้งเตือน Google Apps Script</p>' +
+        '<p>เวลา: ' + this.escapeHtml(now) + '</p></div>'
     }));
     LogService.appendLog({ type: 'Test', recipient: recipients.to.concat(recipients.cc, recipients.bcc).join(','), status: result.status, errorMessage: result.errorMessage || '' });
     return result;

@@ -85,7 +85,8 @@ const APP_CONFIG = {
     skippedInvalidDomain: 'SKIPPED_INVALID_DOMAIN',
     skippedInvalidEmail: 'SKIPPED_INVALID_EMAIL',
     skippedEmptyChqDate: 'SKIPPED_EMPTY_CHQ_DATE',
-    warningMissingDue: 'WARNING_MISSING_DUE'
+    warningMissingDue: 'WARNING_MISSING_DUE',
+    quotaExceeded: 'QUOTA_EXCEEDED'
   },
   invalidEmailMessage: 'อีเมลมีความผิดพลาดกรุณาตรวจสอบข้อมูลจากไฟล์ google sheet โดยตรงและติดต่อผู้ดูแลระบบ'
 };

@@ -10,12 +10,12 @@ const EmailService = {
     const settings = SettingsService.getSettings();
     if (!settings.isEnabled) return { sent: false, reason: 'Reminder system disabled' };
 
-    const recipients = this.filterValidRecipients(settings);
     const payload = this.buildReminderPayload(settings);
     if (!payload.dueReminders.length && !payload.chqReminders.length && !payload.warnings.length) {
       return { sent: false, reason: 'No reminders' };
     }
 
+    const recipients = this.filterValidRecipients(settings);
     const body = this.buildReminderEmailBody(payload);
     return this.sendReminderEmail({
       subject: 'แจ้งเตือน: Vendor ที่จะถึงครบกำหนดเพื่อดำเนินการล่วงหน้า',
@@ -114,13 +114,10 @@ const EmailService = {
    */
   sendReminderEmail(reminderPayload) {
     const recipients = reminderPayload.recipients;
-    const result = this.sendEmailWithRetry({
-      to: this.getMailTo(recipients),
-      cc: recipients.cc.join(','),
-      bcc: recipients.bcc.join(','),
+    const result = this.sendEmailWithRetry(Object.assign(this.buildRecipientFields(recipients), {
       subject: reminderPayload.subject,
       body: reminderPayload.body
-    });
+    }));
 
     const allItems = reminderPayload.payload.dueReminders.concat(reminderPayload.payload.chqReminders, reminderPayload.payload.warnings);
     allItems.forEach((item) => {
@@ -191,13 +188,10 @@ const EmailService = {
   sendTestEmail() {
     const settings = SettingsService.getSettings();
     const recipients = this.filterValidRecipients(settings);
-    const result = this.sendEmailWithRetry({
-      to: this.getMailTo(recipients),
-      cc: recipients.cc.join(','),
-      bcc: recipients.bcc.join(','),
+    const result = this.sendEmailWithRetry(Object.assign(this.buildRecipientFields(recipients), {
       subject: 'ทดสอบระบบแจ้งเตือนอีเมล',
       body: 'นี่คืออีเมลทดสอบจากระบบแจ้งเตือน Google Apps Script\n' + new Date()
-    });
+    }));
     LogService.appendLog({ type: 'Test', recipient: recipients.to.concat(recipients.cc, recipients.bcc).join(','), status: result.status, errorMessage: result.errorMessage || '' });
     return result;
   },
@@ -226,18 +220,36 @@ const EmailService = {
 
 
   /**
-   * Returns a required MailApp to value. Falls back to the first CC/BCC when To is empty.
-   * @param {Object} recipients Filtered recipients.
-   * @return {string} MailApp to recipient string.
+   * Builds MailApp to/cc/bcc fields without duplicating a recipient.
+   * MailApp requires a "to" value, so when To is empty the first available
+   * CC or BCC recipient is promoted to To and removed from its original field.
+   * @param {Object} recipients Filtered recipients with to/cc/bcc arrays.
+   * @return {Object} MailApp recipient fields.
    */
-  getMailTo(recipients) {
-    if (recipients.to.length) return recipients.to.join(',');
-    if (recipients.cc.length) return recipients.cc[0];
-    return recipients.bcc[0];
+  buildRecipientFields(recipients) {
+    const cc = recipients.cc.slice();
+    const bcc = recipients.bcc.slice();
+    let to = recipients.to.slice();
+    if (!to.length) {
+      if (cc.length) to = [cc.shift()];
+      else if (bcc.length) to = [bcc.shift()];
+    }
+    return { to: to.join(','), cc: cc.join(','), bcc: bcc.join(',') };
   },
 
   /**
-   * Sends email and retries once when failed.
+   * Detects whether an error is a Gmail/MailApp quota error.
+   * @param {Error|string} error Error from MailApp.
+   * @return {boolean} True when the error indicates a quota limit.
+   */
+  isQuotaError(error) {
+    const message = (error && error.message ? error.message : String(error)).toLowerCase();
+    return message.indexOf('quota') !== -1 || message.indexOf('too many times') !== -1;
+  },
+
+  /**
+   * Sends email and retries once when failed. Quota errors are not retried and
+   * are reported with a dedicated QUOTA_EXCEEDED status.
    * @param {Object} emailPayload Email payload.
    * @return {Object} Send result.
    */
@@ -246,10 +258,16 @@ const EmailService = {
       MailApp.sendEmail(emailPayload);
       return { status: APP_CONFIG.logStatuses.success };
     } catch (firstError) {
+      if (this.isQuotaError(firstError)) {
+        return { status: APP_CONFIG.logStatuses.quotaExceeded, errorMessage: firstError.message };
+      }
       try {
         MailApp.sendEmail(emailPayload);
         return { status: APP_CONFIG.logStatuses.successAfterRetry, errorMessage: firstError.message };
       } catch (secondError) {
+        if (this.isQuotaError(secondError)) {
+          return { status: APP_CONFIG.logStatuses.quotaExceeded, errorMessage: secondError.message };
+        }
         return { status: APP_CONFIG.logStatuses.failed, errorMessage: secondError.message };
       }
     }

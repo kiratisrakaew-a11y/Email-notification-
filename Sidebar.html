@@ -22,6 +22,10 @@
   <h2>ตั้งค่าแจ้งเตือน</h2>
   <p class="hint">ตั้งค่าการแจ้งเตือนจากชีต DATA สำหรับ Due และ Chq. Date อีเมลหลายรายการให้คั่นด้วย comma (,)</p>
 
+  <label>Sheet ID (Google Sheet ที่มีชีต DATA)</label>
+  <input id="sheetId" type="text" placeholder="เช่น 1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890">
+  <p class="hint">คัดลอกจาก URL ของ Google Sheet: docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</p>
+
   <label>แจ้งเตือน Due ล่วงหน้า: <span id="dueDaysLabel">30</span> วัน</label>
   <div class="row"><input id="dueReminderDays" type="range" min="1" max="60" value="30" oninput="dueDaysLabel.textContent=this.value"></div>
 
@@ -58,6 +62,7 @@
 
     function collectSettings() {
       return {
+        sheetId: document.getElementById('sheetId').value.trim(),
         dueReminderDays: Number(document.getElementById('dueReminderDays').value),
         chqReminderDays: Number(document.getElementById('chqReminderDays').value),
         toRecipients: document.getElementById('toRecipients').value,
@@ -69,6 +74,7 @@
     }
 
     function applySettings(settings) {
+      document.getElementById('sheetId').value = settings.sheetId || '';
       document.getElementById('dueReminderDays').value = settings.dueReminderDays;
       document.getElementById('dueDaysLabel').textContent = settings.dueReminderDays;
       document.getElementById('chqReminderDays').value = settings.chqReminderDays;

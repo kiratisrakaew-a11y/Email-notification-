@@ -1,21 +1,11 @@
 /**
- * Adds the custom reminder menu when the spreadsheet opens.
+ * Serves the Thai settings page as a Web App (standalone project entry point).
+ * @return {GoogleAppsScript.HTML.HtmlOutput} Settings page.
  */
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu(APP_CONFIG.menuName)
-    .addItem('เปิดหน้าตั้งค่า', 'showSidebar')
-    .addItem('ทดสอบส่งอีเมล', 'sendTestEmail')
-    .addToUi();
-}
-
-/**
- * Shows the Thai settings Sidebar.
- */
-function showSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile('Sidebar')
-    .setTitle('ตั้งค่าแจ้งเตือน');
-  SpreadsheetApp.getUi().showSidebar(html);
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Sidebar')
+    .setTitle('ตั้งค่าแจ้งเตือน')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**

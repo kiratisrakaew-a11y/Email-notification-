@@ -11,11 +11,11 @@ const SettingsService = {
   },
 
   /**
-   * Loads settings from document properties.
+   * Loads settings from script properties.
    * @return {Object} Current settings.
    */
   getSettings() {
-    const props = PropertiesService.getDocumentProperties();
+    const props = PropertiesService.getScriptProperties();
     const keys = APP_CONFIG.propertyKeys;
     const defaults = this.getDefaultSettings();
     const timesText = props.getProperty(keys.reminderTimes);
@@ -26,7 +26,8 @@ const SettingsService = {
       ccRecipients: props.getProperty(keys.ccRecipients) || defaults.ccRecipients,
       bccRecipients: props.getProperty(keys.bccRecipients) || defaults.bccRecipients,
       reminderTimes: timesText ? JSON.parse(timesText) : defaults.reminderTimes.slice(),
-      isEnabled: props.getProperty(keys.isEnabled) === 'true'
+      isEnabled: props.getProperty(keys.isEnabled) === 'true',
+      sheetId: props.getProperty(keys.sheetId) || defaults.sheetId
     };
   },
 
@@ -37,7 +38,14 @@ const SettingsService = {
    */
   saveSettings(settings) {
     const normalized = this.normalizeSettings(settings);
-    const props = PropertiesService.getDocumentProperties();
+    if (normalized.sheetId) {
+      try {
+        SpreadsheetApp.openById(normalized.sheetId).getName();
+      } catch (error) {
+        throw new Error('Sheet ID ไม่ถูกต้องหรือไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ Sheet ID');
+      }
+    }
+    const props = PropertiesService.getScriptProperties();
     const keys = APP_CONFIG.propertyKeys;
     props.setProperties({
       [keys.dueReminderDays]: String(normalized.dueReminderDays),
@@ -46,7 +54,8 @@ const SettingsService = {
       [keys.ccRecipients]: normalized.ccRecipients,
       [keys.bccRecipients]: normalized.bccRecipients,
       [keys.reminderTimes]: JSON.stringify(normalized.reminderTimes),
-      [keys.isEnabled]: String(normalized.isEnabled)
+      [keys.isEnabled]: String(normalized.isEnabled),
+      [keys.sheetId]: normalized.sheetId
     }, true);
 
     if (normalized.isEnabled) {
@@ -62,7 +71,7 @@ const SettingsService = {
    * @param {boolean} isEnabled Whether reminders are enabled.
    */
   setReminderSystemEnabled(isEnabled) {
-    PropertiesService.getDocumentProperties().setProperty(APP_CONFIG.propertyKeys.isEnabled, String(Boolean(isEnabled)));
+    PropertiesService.getScriptProperties().setProperty(APP_CONFIG.propertyKeys.isEnabled, String(Boolean(isEnabled)));
   },
 
   /**
@@ -92,7 +101,8 @@ const SettingsService = {
       ccRecipients: String(settings.ccRecipients || ''),
       bccRecipients: String(settings.bccRecipients || ''),
       reminderTimes,
-      isEnabled: Boolean(settings.isEnabled)
+      isEnabled: Boolean(settings.isEnabled),
+      sheetId: String(settings.sheetId || '').trim()
     };
   }
 };

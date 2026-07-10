@@ -63,7 +63,7 @@ const LogService = {
    * @return {GoogleAppsScript.Spreadsheet.Sheet} Log sheet.
    */
   getOrCreateLogSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = SheetService.getSpreadsheet();
     let sheet = spreadsheet.getSheetByName(APP_CONFIG.sheetNames.log);
     if (!sheet) {
       sheet = spreadsheet.insertSheet(APP_CONFIG.sheetNames.log);

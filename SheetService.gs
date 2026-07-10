@@ -12,11 +12,25 @@ const SheetService = {
   },
 
   /**
+   * Opens the target spreadsheet by the configured Sheet ID.
+   * @return {GoogleAppsScript.Spreadsheet.Spreadsheet} Target spreadsheet.
+   */
+  getSpreadsheet() {
+    const sheetId = String(PropertiesService.getScriptProperties().getProperty(APP_CONFIG.propertyKeys.sheetId) || '').trim();
+    if (!sheetId) throw new Error('ยังไม่ได้ตั้งค่า Sheet ID กรุณากรอก Sheet ID ในหน้าตั้งค่า');
+    try {
+      return SpreadsheetApp.openById(sheetId);
+    } catch (error) {
+      throw new Error('เปิด Google Sheet จาก Sheet ID ไม่สำเร็จ กรุณาตรวจสอบ Sheet ID และสิทธิ์การเข้าถึง');
+    }
+  },
+
+  /**
    * Reads DATA rows with row numbers and column map.
    * @return {Object} Data rows and column map.
    */
   getDataRows() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = this.getSpreadsheet();
     const sheet = spreadsheet.getSheetByName(APP_CONFIG.sheetNames.data);
     if (!sheet) throw new Error('ไม่พบชีต DATA');
 
@@ -61,7 +75,7 @@ const SheetService = {
    * @return {string} Spreadsheet URL.
    */
   getSpreadsheetUrl() {
-    return SpreadsheetApp.getActiveSpreadsheet().getUrl();
+    return this.getSpreadsheet().getUrl();
   },
 
   /**

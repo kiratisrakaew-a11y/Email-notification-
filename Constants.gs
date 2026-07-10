@@ -17,7 +17,8 @@ const APP_CONFIG = {
     ccRecipients: 'ccRecipients',
     bccRecipients: 'bccRecipients',
     reminderTimes: 'reminderTimes',
-    isEnabled: 'isEnabled'
+    isEnabled: 'isEnabled',
+    sheetId: 'sheetId'
   },
   defaults: {
     dueReminderDays: 30,
@@ -26,7 +27,8 @@ const APP_CONFIG = {
     isEnabled: false,
     toRecipients: '',
     ccRecipients: '',
-    bccRecipients: ''
+    bccRecipients: '',
+    sheetId: ''
   },
   columns: {
     no: 'No',

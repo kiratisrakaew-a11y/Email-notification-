@@ -387,6 +387,10 @@ No | Vendor name | Amount/Month | PR No | PO No | Epicore Code | Media Location 
 
 ต้องมีชีต Log สำหรับบันทึกประวัติการทำงาน
 
+Log ต้องถูกเก็บใน **ไฟล์ Google Sheet แยกต่างหากจากชีต DATA** (กำหนดด้วย script property `logSheetId`)
+เพื่อให้ชีต DATA สามารถให้สิทธิ์แค่ดู (read-only) ได้ เพราะระบบจะไม่เขียนอะไรลงในชีต DATA
+เมื่อ `logSheetId` ว่าง ให้ระบบสร้างไฟล์ Log ใหม่อัตโนมัติ (`SpreadsheetApp.create`) แล้วจำ ID ไว้
+
 ให้ใช้ชื่อชีตสำหรับบันทึกประวัติเป็น:
 
 - `Log`

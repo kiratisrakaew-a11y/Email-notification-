@@ -24,7 +24,11 @@
 
   <label>Sheet ID (Google Sheet ที่มีชีต DATA)</label>
   <input id="sheetId" type="text" placeholder="เช่น 1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890">
-  <p class="hint">คัดลอกจาก URL ของ Google Sheet: docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit</p>
+  <p class="hint">คัดลอกจาก URL ของ Google Sheet: docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit ชีตนี้ให้สิทธิ์แค่ดู (read-only) ได้</p>
+
+  <label>Log Sheet ID (ที่เก็บ Log แยกต่างหาก)</label>
+  <input id="logSheetId" type="text" placeholder="เว้นว่างไว้เพื่อสร้างไฟล์ Log อัตโนมัติ">
+  <p class="hint">Log จะถูกเก็บแยกจากชีต DATA เพื่อให้ชีต DATA เป็น read-only ได้ ถ้าเว้นว่างไว้ ระบบจะสร้างไฟล์ Log ใหม่ให้อัตโนมัติ (ต้องมีสิทธิ์แก้ไขชีตนี้)</p>
 
   <label>แจ้งเตือน Due ล่วงหน้า: <span id="dueDaysLabel">30</span> วัน</label>
   <div class="row"><input id="dueReminderDays" type="range" min="1" max="60" value="30" oninput="dueDaysLabel.textContent=this.value"></div>
@@ -63,6 +67,7 @@
     function collectSettings() {
       return {
         sheetId: document.getElementById('sheetId').value.trim(),
+        logSheetId: document.getElementById('logSheetId').value.trim(),
         dueReminderDays: Number(document.getElementById('dueReminderDays').value),
         chqReminderDays: Number(document.getElementById('chqReminderDays').value),
         toRecipients: document.getElementById('toRecipients').value,
@@ -75,6 +80,7 @@
 
     function applySettings(settings) {
       document.getElementById('sheetId').value = settings.sheetId || '';
+      document.getElementById('logSheetId').value = settings.logSheetId || '';
       document.getElementById('dueReminderDays').value = settings.dueReminderDays;
       document.getElementById('dueDaysLabel').textContent = settings.dueReminderDays;
       document.getElementById('chqReminderDays').value = settings.chqReminderDays;

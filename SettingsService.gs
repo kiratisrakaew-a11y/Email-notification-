@@ -27,7 +27,8 @@ const SettingsService = {
       bccRecipients: props.getProperty(keys.bccRecipients) || defaults.bccRecipients,
       reminderTimes: timesText ? JSON.parse(timesText) : defaults.reminderTimes.slice(),
       isEnabled: props.getProperty(keys.isEnabled) === 'true',
-      sheetId: props.getProperty(keys.sheetId) || defaults.sheetId
+      sheetId: props.getProperty(keys.sheetId) || defaults.sheetId,
+      logSheetId: props.getProperty(keys.logSheetId) || defaults.logSheetId
     };
   },
 
@@ -45,6 +46,13 @@ const SettingsService = {
         throw new Error('Sheet ID ไม่ถูกต้องหรือไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ Sheet ID');
       }
     }
+    if (normalized.logSheetId) {
+      try {
+        SpreadsheetApp.openById(normalized.logSheetId).getName();
+      } catch (error) {
+        throw new Error('Log Sheet ID ไม่ถูกต้องหรือไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ Log Sheet ID (ต้องมีสิทธิ์แก้ไข)');
+      }
+    }
     const props = PropertiesService.getScriptProperties();
     const keys = APP_CONFIG.propertyKeys;
     props.setProperties({
@@ -55,7 +63,8 @@ const SettingsService = {
       [keys.bccRecipients]: normalized.bccRecipients,
       [keys.reminderTimes]: JSON.stringify(normalized.reminderTimes),
       [keys.isEnabled]: String(normalized.isEnabled),
-      [keys.sheetId]: normalized.sheetId
+      [keys.sheetId]: normalized.sheetId,
+      [keys.logSheetId]: normalized.logSheetId
     }, true);
 
     if (normalized.isEnabled) {
@@ -102,7 +111,8 @@ const SettingsService = {
       bccRecipients: String(settings.bccRecipients || ''),
       reminderTimes,
       isEnabled: Boolean(settings.isEnabled),
-      sheetId: String(settings.sheetId || '').trim()
+      sheetId: String(settings.sheetId || '').trim(),
+      logSheetId: String(settings.logSheetId || '').trim()
     };
   }
 };

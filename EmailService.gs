@@ -9,6 +9,7 @@ const EmailService = {
   runReminders() {
     const settings = SettingsService.getSettings();
     if (!settings.isEnabled) return { sent: false, reason: 'Reminder system disabled' };
+    if (DateService.isWeekend()) return { sent: false, reason: 'Weekend skipped' };
 
     const payload = this.buildReminderPayload(settings);
     if (!payload.dueReminders.length && !payload.chqReminders.length && !payload.warnings.length) {

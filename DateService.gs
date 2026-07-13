@@ -35,6 +35,16 @@ const DateService = {
   },
 
   /**
+   * Returns true when today (in the app timezone) is Saturday or Sunday.
+   * @return {boolean} True on weekends.
+   */
+  isWeekend() {
+    // 'u' = ISO day of week: 1=Mon ... 6=Sat, 7=Sun
+    const dayOfWeek = Number(Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'u'));
+    return dayOfWeek === 6 || dayOfWeek === 7;
+  },
+
+  /**
    * Calculates whole days from today to target date.
    * @param {Date} targetDate Target date.
    * @param {Date} today Today date.

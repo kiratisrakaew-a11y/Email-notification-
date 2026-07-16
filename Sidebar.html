@@ -22,6 +22,14 @@
   <h2>ตั้งค่าแจ้งเตือน</h2>
   <p class="hint">ตั้งค่าการแจ้งเตือนจากชีต DATA สำหรับ Due และ Chq. Date อีเมลหลายรายการให้คั่นด้วย comma (,)</p>
 
+  <label>Sheet ID (Google Sheet ที่มีชีต DATA)</label>
+  <input id="sheetId" type="text" placeholder="เช่น 1AbCdEfGhIjKlMnOpQrStUvWxYz1234567890">
+  <p class="hint">คัดลอกจาก URL ของ Google Sheet: docs.google.com/spreadsheets/d/<b>SHEET_ID</b>/edit ชีตนี้ให้สิทธิ์แค่ดู (read-only) ได้</p>
+
+  <label>Log Sheet ID (ที่เก็บ Log แยกต่างหาก)</label>
+  <input id="logSheetId" type="text" placeholder="เว้นว่างไว้เพื่อสร้างไฟล์ Log อัตโนมัติ">
+  <p class="hint">Log จะถูกเก็บแยกจากชีต DATA เพื่อให้ชีต DATA เป็น read-only ได้ ถ้าเว้นว่างไว้ ระบบจะสร้างไฟล์ Log ใหม่ให้อัตโนมัติ (ต้องมีสิทธิ์แก้ไขชีตนี้)</p>
+
   <label>แจ้งเตือน Due ล่วงหน้า: <span id="dueDaysLabel">30</span> วัน</label>
   <div class="row"><input id="dueReminderDays" type="range" min="1" max="60" value="30" oninput="dueDaysLabel.textContent=this.value"></div>
 
@@ -43,6 +51,10 @@
   <label>เวลาแจ้งเตือนรอบที่ 2</label>
   <input id="timeTwo" type="time" value="13:00">
 
+  <label>ผู้ดูแลที่มีสิทธิ์เข้าถึงหน้านี้ (Admin emails)</label>
+  <textarea id="adminEmails" placeholder="เว้นว่างได้ — เจ้าของที่ deploy เข้าถึงได้เสมอ"></textarea>
+  <p class="hint">ระบุอีเมลผู้ดูแลเพิ่มเติมที่ให้เข้าหน้าตั้งค่าได้ คั่นด้วย comma (,) เจ้าของบัญชีที่ deploy มีสิทธิ์เสมอโดยไม่ต้องกรอก</p>
+
   <label><input id="isEnabled" type="checkbox"> เปิดระบบแจ้งเตือนอัตโนมัติ</label>
 
   <div id="status" class="status">กำลังโหลดการตั้งค่า...</div>
@@ -58,17 +70,22 @@
 
     function collectSettings() {
       return {
+        sheetId: document.getElementById('sheetId').value.trim(),
+        logSheetId: document.getElementById('logSheetId').value.trim(),
         dueReminderDays: Number(document.getElementById('dueReminderDays').value),
         chqReminderDays: Number(document.getElementById('chqReminderDays').value),
         toRecipients: document.getElementById('toRecipients').value,
         ccRecipients: document.getElementById('ccRecipients').value,
         bccRecipients: document.getElementById('bccRecipients').value,
+        adminEmails: document.getElementById('adminEmails').value,
         reminderTimes: [document.getElementById('timeOne').value, document.getElementById('timeTwo').value].filter(Boolean),
         isEnabled: document.getElementById('isEnabled').checked
       };
     }
 
     function applySettings(settings) {
+      document.getElementById('sheetId').value = settings.sheetId || '';
+      document.getElementById('logSheetId').value = settings.logSheetId || '';
       document.getElementById('dueReminderDays').value = settings.dueReminderDays;
       document.getElementById('dueDaysLabel').textContent = settings.dueReminderDays;
       document.getElementById('chqReminderDays').value = settings.chqReminderDays;
@@ -76,6 +93,7 @@
       document.getElementById('toRecipients').value = settings.toRecipients || '';
       document.getElementById('ccRecipients').value = settings.ccRecipients || '';
       document.getElementById('bccRecipients').value = settings.bccRecipients || '';
+      document.getElementById('adminEmails').value = settings.adminEmails || '';
       document.getElementById('timeOne').value = (settings.reminderTimes && settings.reminderTimes[0]) || '09:00';
       document.getElementById('timeTwo').value = (settings.reminderTimes && settings.reminderTimes[1]) || '13:00';
       document.getElementById('isEnabled').checked = Boolean(settings.isEnabled);

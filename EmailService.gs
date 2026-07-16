@@ -9,6 +9,7 @@ const EmailService = {
   runReminders() {
     const settings = SettingsService.getSettings();
     if (!settings.isEnabled) return { sent: false, reason: 'Reminder system disabled' };
+    if (DateService.isWeekend()) return { sent: false, reason: 'Weekend skipped' };
 
     const payload = this.buildReminderPayload(settings);
     if (!payload.dueReminders.length && !payload.chqReminders.length && !payload.warnings.length) {
@@ -254,6 +255,7 @@ const EmailService = {
    * @return {Object} Test result.
    */
   sendTestEmail() {
+    this.assertTestEmailCooldown();
     const settings = SettingsService.getSettings();
     const recipients = this.filterValidRecipients(settings);
     const now = new Date();
@@ -264,8 +266,23 @@ const EmailService = {
         '<p>นี่คืออีเมลทดสอบจากระบบแจ้งเตือน Google Apps Script</p>' +
         '<p>เวลา: ' + this.escapeHtml(now) + '</p></div>'
     }));
+    PropertiesService.getScriptProperties().setProperty(APP_CONFIG.propertyKeys.lastTestEmailAt, String(now.getTime()));
     LogService.appendLog({ type: 'Test', recipient: recipients.to.concat(recipients.cc, recipients.bcc).join(','), status: result.status, errorMessage: result.errorMessage || '' });
     return result;
+  },
+
+  /**
+   * Enforces a minimum interval between manual test emails to prevent abuse
+   * of the owner's daily sending quota.
+   * @throws {Error} When a test email was sent too recently.
+   */
+  assertTestEmailCooldown() {
+    const props = PropertiesService.getScriptProperties();
+    const last = Number(props.getProperty(APP_CONFIG.propertyKeys.lastTestEmailAt) || 0);
+    const cooldownMs = APP_CONFIG.testEmailCooldownSeconds * 1000;
+    if (last && (Date.now() - last) < cooldownMs) {
+      throw new Error('กรุณารอสักครู่ก่อนส่งอีเมลทดสอบอีกครั้ง');
+    }
   },
 
   /**
@@ -326,6 +343,13 @@ const EmailService = {
    * @return {Object} Send result.
    */
   sendEmailWithRetry(emailPayload) {
+    try {
+      if (MailApp.getRemainingDailyQuota() <= 0) {
+        return { status: APP_CONFIG.logStatuses.quotaExceeded, errorMessage: 'Daily email quota exhausted' };
+      }
+    } catch (quotaCheckError) {
+      // If the quota probe itself fails, fall through and let sendEmail report.
+    }
     try {
       MailApp.sendEmail(emailPayload);
       return { status: APP_CONFIG.logStatuses.success };

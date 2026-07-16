@@ -1,21 +1,15 @@
 /**
- * Adds the custom reminder menu when the spreadsheet opens.
+ * Serves the Thai settings page as a Web App (standalone project entry point).
+ * @return {GoogleAppsScript.HTML.HtmlOutput} Settings page.
  */
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu(APP_CONFIG.menuName)
-    .addItem('เปิดหน้าตั้งค่า', 'showSidebar')
-    .addItem('ทดสอบส่งอีเมล', 'sendTestEmail')
-    .addToUi();
-}
-
-/**
- * Shows the Thai settings Sidebar.
- */
-function showSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile('Sidebar')
-    .setTitle('ตั้งค่าแจ้งเตือน');
-  SpreadsheetApp.getUi().showSidebar(html);
+function doGet() {
+  if (!AuthService.isAuthorized()) {
+    return HtmlService.createHtmlOutput('<p style="font-family:Arial,sans-serif;padding:16px">ไม่มีสิทธิ์เข้าถึงระบบนี้ กรุณาติดต่อผู้ดูแลระบบ</p>')
+      .setTitle('ไม่มีสิทธิ์เข้าถึง');
+  }
+  return HtmlService.createHtmlOutputFromFile('Sidebar')
+    .setTitle('ตั้งค่าแจ้งเตือน')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
@@ -32,7 +26,7 @@ function runScheduledReminder() {
       const recipients = EmailService.filterValidRecipients(settings);
       EmailService.sendEmailWithRetry(Object.assign(EmailService.buildRecipientFields(recipients), {
         subject: 'แจ้งเตือนระบบทำงานผิดพลาด',
-        body: 'Trigger ทำงานผิดพลาด\n' + error.message
+        body: 'ระบบแจ้งเตือนทำงานผิดพลาด กรุณาตรวจสอบชีต Log เพื่อดูรายละเอียด'
       }));
     } catch (emailError) {
       LogService.appendErrorLog(emailError, { type: 'Trigger Error Email' });
@@ -46,6 +40,7 @@ function runScheduledReminder() {
  * @return {Object} Test email result.
  */
 function sendTestEmail() {
+  AuthService.assertAuthorized();
   return EmailService.sendTestEmail();
 }
 
@@ -54,6 +49,7 @@ function sendTestEmail() {
  * @return {Object} Settings with trigger state.
  */
 function getSettingsForSidebar() {
+  AuthService.assertAuthorized();
   const settings = SettingsService.getSettings();
   settings.hasActiveTrigger = TriggerService.hasActiveReminderTrigger();
   return settings;
@@ -65,6 +61,7 @@ function getSettingsForSidebar() {
  * @return {Object} Saved settings with trigger state.
  */
 function saveSettingsFromSidebar(settings) {
+  AuthService.assertAuthorized();
   const saved = SettingsService.saveSettings(settings);
   saved.hasActiveTrigger = TriggerService.hasActiveReminderTrigger();
   return saved;
@@ -76,5 +73,6 @@ function saveSettingsFromSidebar(settings) {
  * @return {Object} Toggle state.
  */
 function toggleReminderSystemFromSidebar(isEnabled) {
+  AuthService.assertAuthorized();
   return TriggerService.toggleReminderSystem(isEnabled);
 }

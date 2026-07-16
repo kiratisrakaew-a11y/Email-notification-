@@ -8,18 +8,31 @@ const LogService = {
    */
   appendLog(logEntry) {
     const sheet = this.getOrCreateLogSheet();
+    const s = this.sanitizeCell;
     sheet.appendRow([
       new Date(),
-      logEntry.type || '',
-      logEntry.recipient || '',
-      logEntry.rowNumber || '',
-      logEntry.no || '',
-      logEntry.vendorName || '',
-      logEntry.relatedDate || '',
-      logEntry.status || '',
-      logEntry.errorMessage || '',
-      logEntry.notifyCount || ''
+      s(logEntry.type || ''),
+      s(logEntry.recipient || ''),
+      s(logEntry.rowNumber || ''),
+      s(logEntry.no || ''),
+      s(logEntry.vendorName || ''),
+      s(logEntry.relatedDate || ''),
+      s(logEntry.status || ''),
+      s(logEntry.errorMessage || ''),
+      s(logEntry.notifyCount || '')
     ]);
+  },
+
+  /**
+   * Neutralizes spreadsheet formula (CSV) injection by prefixing values that
+   * begin with a formula trigger character with a single quote, forcing the
+   * cell to be treated as text. Non-string values pass through unchanged.
+   * @param {*} value Raw cell value.
+   * @return {*} Sanitized value.
+   */
+  sanitizeCell(value) {
+    if (typeof value !== 'string' || !value) return value;
+    return /^[=+\-@\t\r]/.test(value) ? "'" + value : value;
   },
 
   /**
@@ -59,11 +72,34 @@ const LogService = {
   },
 
   /**
-   * Gets or creates the Log sheet with headers.
+   * Opens the spreadsheet used for storing logs.
+   * Logs live in a separate spreadsheet so the DATA sheet can stay read-only.
+   * When no Log Sheet ID is configured, a dedicated spreadsheet is created and
+   * its ID is saved, guaranteeing write access for the account running triggers.
+   * @return {GoogleAppsScript.Spreadsheet.Spreadsheet} Log spreadsheet.
+   */
+  getLogSpreadsheet() {
+    const props = PropertiesService.getScriptProperties();
+    const key = APP_CONFIG.propertyKeys.logSheetId;
+    const logSheetId = String(props.getProperty(key) || '').trim();
+    if (logSheetId) {
+      try {
+        return SpreadsheetApp.openById(logSheetId);
+      } catch (error) {
+        throw new Error('เปิด Google Sheet สำหรับเก็บ Log จาก Log Sheet ID ไม่สำเร็จ กรุณาตรวจสอบ Log Sheet ID และสิทธิ์แก้ไข');
+      }
+    }
+    const created = SpreadsheetApp.create('Email Notification Log');
+    props.setProperty(key, created.getId());
+    return created;
+  },
+
+  /**
+   * Gets or creates the Log sheet with headers inside the log spreadsheet.
    * @return {GoogleAppsScript.Spreadsheet.Sheet} Log sheet.
    */
   getOrCreateLogSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = this.getLogSpreadsheet();
     let sheet = spreadsheet.getSheetByName(APP_CONFIG.sheetNames.log);
     if (!sheet) {
       sheet = spreadsheet.insertSheet(APP_CONFIG.sheetNames.log);

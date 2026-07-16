@@ -8,18 +8,31 @@ const LogService = {
    */
   appendLog(logEntry) {
     const sheet = this.getOrCreateLogSheet();
+    const s = this.sanitizeCell;
     sheet.appendRow([
       new Date(),
-      logEntry.type || '',
-      logEntry.recipient || '',
-      logEntry.rowNumber || '',
-      logEntry.no || '',
-      logEntry.vendorName || '',
-      logEntry.relatedDate || '',
-      logEntry.status || '',
-      logEntry.errorMessage || '',
-      logEntry.notifyCount || ''
+      s(logEntry.type || ''),
+      s(logEntry.recipient || ''),
+      s(logEntry.rowNumber || ''),
+      s(logEntry.no || ''),
+      s(logEntry.vendorName || ''),
+      s(logEntry.relatedDate || ''),
+      s(logEntry.status || ''),
+      s(logEntry.errorMessage || ''),
+      s(logEntry.notifyCount || '')
     ]);
+  },
+
+  /**
+   * Neutralizes spreadsheet formula (CSV) injection by prefixing values that
+   * begin with a formula trigger character with a single quote, forcing the
+   * cell to be treated as text. Non-string values pass through unchanged.
+   * @param {*} value Raw cell value.
+   * @return {*} Sanitized value.
+   */
+  sanitizeCell(value) {
+    if (typeof value !== 'string' || !value) return value;
+    return /^[=+\-@\t\r]/.test(value) ? "'" + value : value;
   },
 
   /**

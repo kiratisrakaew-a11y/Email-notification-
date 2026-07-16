@@ -28,7 +28,8 @@ const SettingsService = {
       reminderTimes: timesText ? JSON.parse(timesText) : defaults.reminderTimes.slice(),
       isEnabled: props.getProperty(keys.isEnabled) === 'true',
       sheetId: props.getProperty(keys.sheetId) || defaults.sheetId,
-      logSheetId: props.getProperty(keys.logSheetId) || defaults.logSheetId
+      logSheetId: props.getProperty(keys.logSheetId) || defaults.logSheetId,
+      adminEmails: props.getProperty(keys.adminEmails) || defaults.adminEmails
     };
   },
 
@@ -43,14 +44,14 @@ const SettingsService = {
       try {
         SpreadsheetApp.openById(normalized.sheetId).getName();
       } catch (error) {
-        throw new Error('Sheet ID ไม่ถูกต้องหรือไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ Sheet ID');
+        throw new Error('ไม่สามารถบันทึกการตั้งค่าได้ กรุณาตรวจสอบ Sheet ID ให้ถูกต้อง');
       }
     }
     if (normalized.logSheetId) {
       try {
         SpreadsheetApp.openById(normalized.logSheetId).getName();
       } catch (error) {
-        throw new Error('Log Sheet ID ไม่ถูกต้องหรือไม่มีสิทธิ์เข้าถึง กรุณาตรวจสอบ Log Sheet ID (ต้องมีสิทธิ์แก้ไข)');
+        throw new Error('ไม่สามารถบันทึกการตั้งค่าได้ กรุณาตรวจสอบ Log Sheet ID ให้ถูกต้อง');
       }
     }
     const props = PropertiesService.getScriptProperties();
@@ -64,7 +65,8 @@ const SettingsService = {
       [keys.reminderTimes]: JSON.stringify(normalized.reminderTimes),
       [keys.isEnabled]: String(normalized.isEnabled),
       [keys.sheetId]: normalized.sheetId,
-      [keys.logSheetId]: normalized.logSheetId
+      [keys.logSheetId]: normalized.logSheetId,
+      [keys.adminEmails]: normalized.adminEmails
     }, true);
 
     if (normalized.isEnabled) {
@@ -112,7 +114,8 @@ const SettingsService = {
       reminderTimes,
       isEnabled: Boolean(settings.isEnabled),
       sheetId: String(settings.sheetId || '').trim(),
-      logSheetId: String(settings.logSheetId || '').trim()
+      logSheetId: String(settings.logSheetId || '').trim(),
+      adminEmails: String(settings.adminEmails || '').split(',').map((email) => email.trim()).filter(Boolean).join(',')
     };
   }
 };

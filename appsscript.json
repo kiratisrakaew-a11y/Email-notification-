@@ -1,0 +1,9 @@
+{
+  "timeZone": "Asia/Bangkok",
+  "runtimeVersion": "V8",
+  "exceptionLogging": "STACKDRIVER",
+  "webapp": {
+    "access": "DOMAIN",
+    "executeAs": "USER_DEPLOYING"
+  }
+}

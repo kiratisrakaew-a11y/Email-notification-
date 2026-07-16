@@ -10,6 +10,7 @@ const APP_CONFIG = {
   allowedDomain: '@planbmedia.co.th',
   triggerHandler: 'runScheduledReminder',
   menuName: 'ตั้งค่าแจ้งเตือน',
+  testEmailCooldownSeconds: 60,
   propertyKeys: {
     dueReminderDays: 'dueReminderDays',
     chqReminderDays: 'chqReminderDays',
@@ -19,7 +20,9 @@ const APP_CONFIG = {
     reminderTimes: 'reminderTimes',
     isEnabled: 'isEnabled',
     sheetId: 'sheetId',
-    logSheetId: 'logSheetId'
+    logSheetId: 'logSheetId',
+    adminEmails: 'adminEmails',
+    lastTestEmailAt: 'lastTestEmailAt'
   },
   defaults: {
     dueReminderDays: 30,
@@ -30,7 +33,8 @@ const APP_CONFIG = {
     ccRecipients: '',
     bccRecipients: '',
     sheetId: '',
-    logSheetId: ''
+    logSheetId: '',
+    adminEmails: ''
   },
   columns: {
     no: 'No',
